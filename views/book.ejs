@@ -1,0 +1,61 @@
+<!doctype html>
+<html>
+<head>
+  <title>Book — Countryside Paradise</title>
+  <%- include("includes/head") %>
+</head>
+<body>
+  <%- include("includes/header") %>
+  <main style="padding:24px;">
+    <br>
+    <h1>Book Your Event</h1>
+    <p>Thank you for your interest in Countryside Paradise! Please fill out the form with information of your event and we'll get back to you!</p>
+    <br>
+    <form action="/book" method="POST">
+      <fieldset>
+        <label for="firstname">First Name</label>
+        <input type="text" name="firstname" required>
+        <br>
+        <label for="lastname">Last Name</label>
+        <input type="text" name="lastname" required>
+        <br>
+        <label for="phone">Phone Number</label>
+        <input type="tel" id="phone" name="phone" required>
+        <br>
+        <label for="email">Email</label>
+        <input type="email" name="email" required>
+        <br>
+        <label for="message">Your Message</label>
+        <textarea name="message" id="message" required placeholder="Hello, I would like to book this place for a wedding on this date..."></textarea>
+      </fieldset>
+      <br>
+      <button>Contact</button>
+    </form>
+  </main>
+  <%- include("includes/footer") %>
+
+  <script>
+    const phoneInput = document.getElementById("phone");
+
+    phoneInput.addEventListener("input", (e) => {
+      // Strip all non-digits
+      let digits = e.target.value.replace(/\D/g, "");
+      
+      // Limit to 10 digits max
+      if (digits.length > 10) digits = digits.slice(0, 10);
+
+      // Build formatted string
+      let formatted = digits;
+      if (digits.length > 6) {
+        formatted = `(${digits.slice(0,3)}) ${digits.slice(3,6)} - ${digits.slice(6)}`;
+      } else if (digits.length > 3) {
+        formatted = `(${digits.slice(0,3)}) ${digits.slice(3)}`;
+      } else if (digits.length > 0) {
+        formatted = `(${digits}`;
+      }
+
+      e.target.value = formatted;
+    });
+  </script>
+</body>
+</html>

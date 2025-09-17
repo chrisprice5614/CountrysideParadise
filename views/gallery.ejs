@@ -1,0 +1,229 @@
+<!doctype html>
+<html>
+<head>
+  <title>Countryside Paradise | Gallery</title>
+  <%- include("includes/head") %>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    main {
+  background: url("/img/wood.jpg") repeat;
+  background-size: auto;   /* use natural image size */
+  width: 100%;             /* ensure it spans full page width */
+  min-height: 100vh;       /* keep height at least viewport height */
+}
+    .gallery-wrap {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    .gallery-grid{
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 4px;
+    }
+
+   
+
+    /* skeleton while loading */
+    .skeleton {
+      background: linear-gradient(90deg, #eee 25%, #f5f5f5 37%, #eee 63%);
+      background-size: 400% 100%;
+      animation: shimmer 1.2s infinite;
+      border-radius: 6px;
+      height: 180px;
+    }
+    @keyframes shimmer {
+      0% { background-position: 100% 0; }
+      100% { background-position: 0 0; }
+    }
+
+    /* Responsive tweak */
+    @media (max-width: 900px){
+      .gallery-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    /* Load more sentinel */
+    #sentinel {
+      width: 100%;
+      height: 40px;
+    }
+  </style>
+</head>
+<body>
+  <header><%- include("includes/header") %></header>
+
+  <main>
+    <div class="gallery-wrap">
+
+      <div id="gallery" class="gallery-grid">
+        <!-- items will stream in here -->
+      </div>
+
+      <div id="sentinel"></div>
+      <p id="status" style="text-align:center; padding: 12px; display:none;">Loading…</p>
+    </div>
+  </main>
+
+  <%- include("includes/footer") %>
+
+<script>
+  const gallery = document.getElementById("gallery");
+  const statusEl = document.getElementById("status");
+  const sentinel = document.getElementById("sentinel");
+
+  let page = 0;
+  const pageSize = 20;
+  let loading = false;
+  let done = false;
+  let reshuffledOnce = false;   // try one server reshuffle when we hit empty
+  const seenIds = new Set();
+
+  function normalizeUrl(u) {
+    if (!u) return '';
+    if (u.startsWith('http://') || u.startsWith('https://') || u.startsWith('/')) return u;
+    return '/' + u.replace(/^\/+/, '');
+  }
+
+  function addCard(item) {
+    const wrap = document.createElement('div');
+    wrap.className = 'polaroid-container';
+    wrap.style.setProperty('--angle', ((Math.random() * 8 - 4).toFixed(1)) + 'deg');
+
+    const card = document.createElement('div');
+    card.className = 'polaroid';
+
+    const skel = document.createElement('div');
+    skel.className = 'skeleton';
+    card.appendChild(skel);
+    wrap.appendChild(card);
+    gallery.appendChild(wrap);
+
+    const img = new Image();
+    img.className = 'polaroid-photo';
+    img.loading = 'lazy';
+    img.decoding = 'async';
+    img.alt = item.alt || 'Photo';
+    img.src = normalizeUrl(item.url);
+
+    img.onerror = () => {
+      if (card.contains(img)) card.removeChild(img);
+      if (card.contains(skel)) card.removeChild(skel);
+      const err = document.createElement('div');
+      err.className = 'error-chip';
+      err.textContent = '⚠️ Failed to load image';
+      card.appendChild(err);
+    };
+
+    requestAnimationFrame(() => {
+      if (card.contains(skel)) card.replaceChild(img, skel);
+      else card.appendChild(img);
+    });
+  }
+
+  async function fetchPage(p, { refresh = false } = {}) {
+    const url = `/api/gallery?page=${p}&pageSize=${pageSize}${refresh ? '&refresh=1' : ''}`;
+    const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+  }
+
+  async function loadNextPage({ refresh = false } = {}) {
+    if (loading || done) return;
+    loading = true;
+    statusEl.style.display = 'block';
+    statusEl.textContent = 'Loading…';
+
+    try {
+      let data = await fetchPage(page, { refresh });
+
+      // If server says empty page:
+      if (!Array.isArray(data) || data.length === 0) {
+        // Try one reshuffle once per session to pick up any new items
+        if (!reshuffledOnce) {
+          reshuffledOnce = true;
+          page = 0;
+          data = await fetchPage(page, { refresh: true });
+          if (!Array.isArray(data) || data.length === 0) {
+            done = true;
+            statusEl.textContent = '';
+            return;
+          }
+        } else {
+          done = true;
+          statusEl.textContent = '';
+          return;
+        }
+      }
+
+      // Filter duplicates client-side
+      let fresh = data.filter(it => it && typeof it.id !== 'undefined' && it.url && !seenIds.has(it.id));
+
+      // If this page was all dups, skip ahead until we find fresh or truly run out
+      let safetyHops = 0;
+      while (fresh.length === 0 && safetyHops < 5) {
+        page += 1;
+        const nextData = await fetchPage(page, { refresh });
+        if (!Array.isArray(nextData) || nextData.length === 0) {
+          if (!reshuffledOnce) {
+            reshuffledOnce = true;
+            page = 0;
+            const reshuf = await fetchPage(page, { refresh: true });
+            if (!Array.isArray(reshuf) || reshuf.length === 0) {
+              done = true;
+              statusEl.textContent = 'No more images.';
+              return;
+            }
+            fresh = reshuf.filter(it => it && typeof it.id !== 'undefined' && it.url && !seenIds.has(it.id));
+            break;
+          } else {
+            done = true;
+            statusEl.textContent = 'No more images.';
+            return;
+          }
+        } else {
+          fresh = nextData.filter(it => it && typeof it.id !== 'undefined' && it.url && !seenIds.has(it.id));
+        }
+        safetyHops++;
+      }
+
+      if (fresh.length === 0) {
+        done = true;
+        statusEl.textContent = 'No more images.';
+        return;
+      }
+
+      fresh.forEach(it => {
+        seenIds.add(it.id);
+        addCard(it);
+      });
+
+      page += 1;
+      statusEl.style.display = 'none';
+    } catch (e) {
+      console.error(e);
+      statusEl.textContent = 'Error loading images.';
+    } finally {
+      loading = false;
+    }
+  }
+
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) loadNextPage();
+    });
+  }, { rootMargin: '600px 0px' });
+
+  io.observe(sentinel);
+
+  // initial load
+  loadNextPage();
+</script>
+
+
+
+
+</body>
+</html>

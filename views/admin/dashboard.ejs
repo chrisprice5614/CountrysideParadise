@@ -1,0 +1,109 @@
+<!doctype html>
+<html>
+<head>
+  <title>Admin — Countryside Paradise</title>
+  <%- include("../includes/head") %>
+  <style>
+    .gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 16px;
+      margin-top: 32px;
+    }
+    .gallery-item {
+      position: relative;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #f9f9f9;
+    }
+    .gallery-item img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+    .delete-btn {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      opacity: 0.8;
+    }
+    .delete-btn:hover {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <%- include("../includes/header") %>
+  <main style="padding:24px;">
+    <br>
+    <h1 style="text-align: center;">Add To Gallery</h1>
+    <br>
+    <form action="/upload-image" method="POST" enctype="multipart/form-data">
+      <fieldset>
+        <label for="image">Upload Image</label>
+        <input type="file" name="image" required accept="image/*">
+        <br>
+        <label for="alt">Description</label>
+        <input type="text" name="alt" required>
+      </fieldset>
+      <br>
+      <button>Upload</button>
+    </form>
+
+    <h2 style="margin-top:40px;text-align:center;">Gallery</h2>
+    <div id="gallery" class="gallery-grid"></div>
+    <p id="loading" style="text-align:center;display:none;">Loading…</p>
+  </main>
+  <%- include("../includes/footer") %>
+
+  <script>
+    let page = 0;
+    let loading = false;
+    const gallery = document.getElementById("gallery");
+    const loadingEl = document.getElementById("loading");
+
+    async function loadImages() {
+      if (loading) return;
+      loading = true;
+      loadingEl.style.display = "block";
+      const res = await fetch(`/gallery-admin?page=${page}`);
+      const data = await res.json();
+      loadingEl.style.display = "none";
+      loading = false;
+      if (data.length === 0) return;
+
+      data.forEach(img => {
+        const div = document.createElement("div");
+        div.className = "gallery-item";
+        div.innerHTML = `
+          <button class="delete-btn" onclick="deleteImage(${img.id}, this)">×</button>
+          <img src="${img.url}" alt="${img.alt}" loading="lazy">
+        `;
+        gallery.appendChild(div);
+      });
+      page++;
+    }
+
+    async function deleteImage(id, btn) {
+      if (!confirm("Delete this image?")) return;
+      const res = await fetch("/gallery/" + id, { method: "DELETE" });
+      if (res.ok) {
+        btn.parentElement.remove();
+      } else {
+        alert("Failed to delete.");
+      }
+    }
+
+    // Initial load
+    loadImages();
+
+    // Infinite scroll
+    window.addEventListener("scroll", () => {
+      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 200) {
+        loadImages();
+      }
+    });
+  </script>
+</body>
+</html>

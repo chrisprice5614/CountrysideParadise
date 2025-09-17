@@ -1,0 +1,51 @@
+<!doctype html>
+<html>
+<head>
+  <title>Manage Dates — Countryside Paradise</title>
+  <%- include("../includes/head") %>
+</head>
+<body>
+  <%- include("../includes/header") %>
+
+  <main style="padding:24px; max-width:800px; margin:0 auto;">
+    <h2>Manage Available Dates</h2>
+    <p>Add or remove available dates that customers can book.</p>
+
+    <div class="card" style="margin:20px 0;">
+      <form method="post" action="/admin/avail-dates/add" style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+        <div>
+          <label for="date">Date</label><br>
+          <input type="date" name="date" required>
+        </div>
+        <div>
+          <label for="max_bookings">Max Bookings</label><br>
+          <input type="number" name="max_bookings" value="1" min="1">
+        </div>
+        <div style="align-self:flex-end;">
+          <button type="submit">Add Date</button>
+        </div>
+      </form>
+    </div>
+
+    <h3>Current Dates</h3>
+    <table>
+      <tr><th>ID</th><th>Date</th><th>Max Bookings</th><th>Actions</th></tr>
+      <% dates.forEach(function(d){ %>
+        <tr>
+          <td><%= d.id %></td>
+          <td><%= d.date %></td>
+          <td><%= d.max_bookings %></td>
+          <td>
+            <form method="post" action="/admin/avail-dates/delete" style="display:inline;">
+              <input type="hidden" name="id" value="<%= d.id %>">
+              <button type="submit" onclick="return confirm('Delete this date?')">Delete</button>
+            </form>
+          </td>
+        </tr>
+      <% }) %>
+    </table>
+  </main>
+
+  <%- include("../includes/footer") %>
+</body>
+</html>

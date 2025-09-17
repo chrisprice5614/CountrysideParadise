@@ -1,0 +1,22 @@
+<!doctype html>
+<html>
+<head>
+  <title>Admin login — Countryside Paradise</title>
+  <%- include("../includes/head") %>
+</head>
+<body>
+  <main style="padding:24px; max-width:600px; margin:0 auto;">
+    <div class="card">
+      <h3>Admin login</h3>
+      <% if (typeof error !== 'undefined') { %>
+        <div style="color:red"><%= error %></div>
+      <% } %>
+      <form method="post" action="/admin/login">
+        <label>Password</label>
+        <input type="password" name="password" required>
+        <button style="margin-top:10px">Login</button>
+      </form>
+    </div>
+  </main>
+</body>
+</html>

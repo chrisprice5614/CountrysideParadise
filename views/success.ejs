@@ -1,0 +1,38 @@
+<!doctype html>
+<html>
+<head>
+  <title>Payment Success — Countryside Paradise</title>
+  <%- include("includes/head") %>
+</head>
+<body>
+  <%- include("includes/header") %>
+
+  <main style="padding:24px; max-width:800px; margin:0 auto;">
+    <div class="card">
+      <h2>🎉 Payment Successful!</h2>
+
+      <% if (booking) { %>
+        <p>Thank you, <b><%= booking.customer_name %></b>.  
+        Your booking for <b><%= booking.date %></b> is confirmed.</p>
+
+        <ul style="margin:16px 0; padding-left:20px;">
+          <li>Booking ID: <%= booking.id %></li>
+          <li>Total: $<%= (booking.total_cents / 100).toFixed(2) %></li>
+          <li>Down Payment Paid: $<%= (booking.down_cents / 100).toFixed(2) %></li>
+          <li>Status: <%= booking.status %></li>
+        </ul>
+
+        <p>We’ve also sent a confirmation email to <b><%= booking.customer_email %></b>.</p>
+
+        <div style="margin-top:20px;">
+          <a href="/" class="card" style="padding:12px; display:inline-block;">Return to Home</a>
+        </div>
+      <% } else { %>
+        <p>We couldn’t find your booking details. Please contact us for help.</p>
+      <% } %>
+    </div>
+  </main>
+
+  <%- include("includes/footer") %>
+</body>
+</html>
