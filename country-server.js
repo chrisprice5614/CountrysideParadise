@@ -294,7 +294,7 @@ app.post("/book", (req, res) => {
   `;
 
   // Send the email
-  sendEmail("chrisprice5614@gmail.com", "Contact Submission", htmlContent);
+  sendEmail("countrysideparadise509@gmail.com", "Contact Submission", htmlContent);
 
   // Redirect to thank you page
   res.redirect("/thank-you");
